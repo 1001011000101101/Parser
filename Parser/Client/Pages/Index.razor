@@ -2,8 +2,15 @@
 @using Parser.Shared.Models
 
 @inject HttpClient Http
+@inject BlazorTimer Timer
+
 
 <h1>Настройки</h1>
+
+<BSAlert Color="Color.Light">
+    @message
+</BSAlert>
+
 
 @if (settings == null)
 {
@@ -32,7 +39,7 @@ else
             <BSLabel IsCheck="true" For="exampleCheck1">Check me out</BSLabel>
         </BSFormGroup>
 
-        <BSButton Color="Color.Primary" ButtonType="ButtonType.Submit">Submit</BSButton>
+        <BSButton Color="Color.Primary" OnClick="@(x => message = "")" ButtonType="ButtonType.Button">Button</BSButton>
 
     </BSBasicForm>
 }
@@ -43,6 +50,7 @@ else
 
 @code {
     private Settings settings;
+    private string message;
 
     protected override async Task OnInitializedAsync()
     {
@@ -58,7 +66,18 @@ else
 
     protected async Task SaveSettingsAsync()
     {
-        JsonResult result = await Http.PostJsonAsync<JsonResult>("Settings", settings);
+        var result = await Http.PostJsonAsync<Responce>("Settings", settings);
+        message = result.Message;
+
+        Timer.SetTimer(5000);
+        Timer.OnElapsed += CloseAlert;
+        var rtrt = "";
+    }
+
+    protected void CloseAlert()
+    {
+        message = "";
+        this.StateHasChanged();
     }
 
 }

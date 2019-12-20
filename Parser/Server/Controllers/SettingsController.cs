@@ -9,6 +9,7 @@ using Parser.Shared.Models;
 using LiteDB;
 using System.Web;
 using Microsoft.Extensions.Hosting;
+//using Newtonsoft.Json;
 
 
 
@@ -43,9 +44,11 @@ namespace Parser.Server.Controllers
         }
 
         [HttpPost]
-        public ActionResult SaveSettingsAsync(Settings settings)
+        public Responce SaveSettingsAsync(Settings settings)
         {
-            JsonResult result = new JsonResult(null);
+            Responce result = new Responce();
+
+
 
             // Open database (or create if doesn't exist)
             using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.dbFileLocation)))
@@ -90,10 +93,9 @@ namespace Parser.Server.Controllers
 
 
 
-            result.Value = new
-            {
-                Message = "Настройки сохранены"
-            };
+            result.Success = true;
+            result.Message = "Настройки успешно сохранены";
+            result.NeedShowMessage = true;
 
 
 
