@@ -1,5 +1,6 @@
 ﻿@page "/"
 @using Parser.Shared.Models
+
 @inject HttpClient Http
 
 <h1>Настройки</h1>
@@ -57,7 +58,7 @@ else
 
     protected async Task SaveSettingsAsync()
     {
-        await Http.PostJsonAsync("Settings", settings);
+        JsonResult result = await Http.PostJsonAsync<JsonResult>("Settings", settings);
     }
 
 }
