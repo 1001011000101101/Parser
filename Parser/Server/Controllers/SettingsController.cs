@@ -9,6 +9,9 @@ using Parser.Shared.Models;
 using LiteDB;
 using System.Web;
 using Microsoft.Extensions.Hosting;
+using NLog.Web;
+
+
 //using Newtonsoft.Json;
 
 
@@ -31,6 +34,7 @@ namespace Parser.Server.Controllers
         [HttpGet]
         public Settings Get()
         {
+            logger.LogDebug("Get settings()");
             using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.dbFileLocation)))
             {
                 // Get a collection (or create, if doesn't exist)
