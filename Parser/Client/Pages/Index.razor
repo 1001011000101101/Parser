@@ -1,27 +1,63 @@
 ﻿@page "/"
+@using Parser.Shared.Models
+@inject HttpClient Http
 
 <h1>Настройки</h1>
 
-Welcome to your new app.
+@if (settings == null)
+{
+    <p><em>Загрузка</em></p>
+}
+else
+{
+    <BSBasicForm>
+        <BSFormGroup>
+            <BSLabel For="regionInput">Регион</BSLabel>
+            <BSBasicInput ValueChanged="@((string x) => RegionChanged(x))" Id="regionInput" InputType="InputType.Text" PlaceHolder="Регион поиска" Value="@settings.Region"></BSBasicInput>
+            <small id="regionHelp" class="form-text text-muted"></small>
+        </BSFormGroup>
 
-<BSBasicForm>
-    <BSFormGroup>
-        <BSLabel For="exampleInputEmail1">Email address</BSLabel>
-        <BSBasicInput Id="exampleInputEmail1" InputType="InputType.Email" PlaceHolder="Enter email" Value="string.Empty"></BSBasicInput>
 
-            <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
-    </BSFormGroup>
 
-    <BSFormGroup>
-        <BSLabel For="exampleInputPassword1">Password</BSLabel>
-        <BSBasicInput Id="exampleInputPassword1" InputType="InputType.Password" PlaceHolder="Password" Value="string.Empty"></BSBasicInput>
-    </BSFormGroup>
 
-    <BSFormGroup IsCheck="true">
-        <BSBasicInput Id="exampleCheck1" InputType="InputType.Checkbox" Value="string.Empty"></BSBasicInput>
+
+        <BSFormGroup>
+            <BSLabel For="exampleInputPassword1">Password</BSLabel>
+            <BSBasicInput Id="exampleInputPassword1" InputType="InputType.Password" PlaceHolder="Password" Value="string.Empty"></BSBasicInput>
+        </BSFormGroup>
+
+        <BSFormGroup IsCheck="true">
+            <BSBasicInput Id="exampleCheck1" InputType="InputType.Checkbox" Value="string.Empty"></BSBasicInput>
             <BSLabel IsCheck="true" For="exampleCheck1">Check me out</BSLabel>
-    </BSFormGroup>
+        </BSFormGroup>
 
-    <BSButton Color="Color.Primary" ButtonType="ButtonType.Submit">Submit</BSButton>
+        <BSButton Color="Color.Primary" ButtonType="ButtonType.Submit">Submit</BSButton>
 
-</BSBasicForm>
+    </BSBasicForm>
+}
+
+
+
+
+
+@code {
+    private Settings settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        settings = await Http.GetJsonAsync<Settings>("Settings");
+    }
+
+    protected async Task RegionChanged(string region)
+    {
+        settings.Region = region;
+        await SaveSettingsAsync();
+    }
+
+
+    protected async Task SaveSettingsAsync()
+    {
+        await Http.PostJsonAsync("Settings", settings);
+    }
+
+}
