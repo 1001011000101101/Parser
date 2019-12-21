@@ -1,0 +1,86 @@
+﻿@page "/parsing"
+@using Parser.Shared.Models
+
+@inject HttpClient Http
+@inject BlazorTimer Timer
+
+
+<h1>Парсинг</h1>
+
+<BSAlert Color="Color.Light">
+
+</BSAlert>
+
+
+@if (parserIsBusy == null)
+{
+    <p><em>Загрузка</em></p>
+}
+else
+{
+
+    <BSCard Alignment="Alignment.Center">
+        <BSCard CardType="CardType.Body">
+            <BSButton OnClick="ToggleStateParsing" Color="@color">@message</BSButton>
+        </BSCard>
+    </BSCard>
+
+
+}
+
+
+
+
+
+
+@code {
+    private string messageRun = "Запустить";
+    private string messageStop = "Остановить";
+    private string messageInProcess = "..........";
+    private string message = "";
+
+    private bool? parserIsBusy;
+    private Color color = Color.Secondary;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var result = await Http.GetJsonAsync<ParserResponce>("Parsing");
+
+        if (result.ParserIsBusy)
+        {
+            message = messageStop;
+            color = Color.Success;
+        }
+        else
+        {
+            message = messageRun;
+            color = Color.Secondary;
+        }
+
+
+        parserIsBusy = result.ParserIsBusy;
+        this.StateHasChanged();
+    }
+
+    async void ToggleStateParsing(MouseEventArgs e)
+    {
+        message = messageInProcess;
+        this.StateHasChanged();
+
+        var result = await Http.PutJsonAsync<ParserResponce>("Parsing", new object());
+
+
+
+        if (result.ParserIsBusy)
+        {
+            message = messageStop;
+            color = Color.Success;
+        }
+        else
+        {
+            message = messageRun;
+            color = Color.Secondary;
+        }
+        this.StateHasChanged();
+    }
+}

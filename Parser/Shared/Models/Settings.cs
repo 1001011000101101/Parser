@@ -8,5 +8,11 @@ namespace Parser.Shared.Models
     {
         public int Id { get; set; }
         public string Region { get; set; }
+        public string Okved { get; set; }
+        public int DebtPercent { get; set; }
+        public double ClaimAmount { get; set; }
+        public DateTime ClaimAmountPeriodStart { get; set; }
+        public DateTime ClaimAmountPeriodEnd { get; set; }
+        public int ClaimAmountPercent { get; set; }
     }
 }

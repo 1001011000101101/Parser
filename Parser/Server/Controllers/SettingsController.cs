@@ -10,6 +10,7 @@ using LiteDB;
 using System.Web;
 using Microsoft.Extensions.Hosting;
 using NLog.Web;
+using Parser.Server.Code;
 
 
 //using Newtonsoft.Json;
@@ -24,23 +25,33 @@ namespace Parser.Server.Controllers
     {
         private readonly ILogger<SettingsController> logger;
         private IHostEnvironment env;
+        private ParserService parserService;
 
-        public SettingsController(ILogger<SettingsController> logger, IHostEnvironment env)
+        public SettingsController(ILogger<SettingsController> logger, IHostEnvironment env, IHostedService parserService)
         {
             this.logger = logger;
             this.env = env;
+            this.parserService = (ParserService)parserService;
         }
 
         [HttpGet]
         public Settings Get()
         {
+
             logger.LogDebug("Get settings()");
             using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.dbFileLocation)))
             {
                 // Get a collection (or create, if doesn't exist)
-                var settings = db.GetCollection<Settings>("settings");
-
+                var settings = db.GetCollection<Settings>(nameof(Settings).ToLower());
                 // Use LINQ to query documents
+
+
+                var s = settings.FindAll().SingleOrDefault();
+                if (s == null)
+                {
+                    settings.Insert(new Settings());
+                }
+
                 return settings.FindAll().SingleOrDefault();
             }
 
@@ -52,13 +63,13 @@ namespace Parser.Server.Controllers
         {
             Responce result = new Responce();
 
-
-
+            
+     
             // Open database (or create if doesn't exist)
             using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.dbFileLocation)))
             {
                 // Get a collection (or create, if doesn't exist)
-                var col = db.GetCollection<Settings>("settings");
+                var col = db.GetCollection<Settings>(nameof(Settings).ToLower());
 
 
                 var results = col.FindById(settings.Id);
@@ -81,9 +92,11 @@ namespace Parser.Server.Controllers
 
                 // Index document using document Name property
                 col.EnsureIndex(x => x.Region);
+                col.EnsureIndex(x => x.Okved);
+                col.EnsureIndex(x => x.DebtPercent);
 
                 // Use LINQ to query documents
-                
+
 
 
 
