@@ -9,6 +9,8 @@ using LiteDB;
 using NLog.Web;
 using System.Threading;
 using Microsoft.Extensions.Options;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Chrome;
 
 namespace Parser.Server.Code
 {
@@ -34,6 +36,15 @@ namespace Parser.Server.Code
         {
             IsBusy = true;
             logger.LogDebug($"GracePeriodManagerService is starting.");
+            return;
+            var chromeOptions = new ChromeOptions();
+            //chromeOptions.AddArgument("--blink-settings=imagesEnabled=false");
+            //chromeOptions.AddArgument("--disable-application-cache");
+            var browser = new ChromeDriver(Constants.WebDriverFolder, chromeOptions);
+
+
+
+            
 
             parsingToken.Register(() =>
                 logger.LogDebug($" GracePeriod background task is stopping."));
@@ -41,6 +52,17 @@ namespace Parser.Server.Code
             while (!NeedStop && !parsingToken.IsCancellationRequested)
             {
                 logger.LogDebug($"GracePeriod task doing background work.");
+
+
+
+                browser.Navigate().GoToUrl(Constants.RusProfileUrl);
+
+
+                IJavaScriptExecutor js = (IJavaScriptExecutor)browser;
+                string valOut = js.ExecuteScript("var element = document.querySelector('div.main-section__title'); return element.innerHTML; ")?.ToString();
+
+
+
 
                 // This eShopOnContainers method is querying a database table
                 // and publishing events into the Event Bus (RabbitMQ / ServiceBus)

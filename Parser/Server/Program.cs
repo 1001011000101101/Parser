@@ -5,6 +5,7 @@ using System;
 using NLog.Web;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Parser.Shared.Models;
 
 
 namespace Parser.Server
@@ -18,13 +19,23 @@ namespace Parser.Server
             try
             {
                 logger.Debug("init main");
+
+                if (!System.IO.Directory.Exists(Constants.UploadFilesFolder))
+                {
+                    System.IO.Directory.CreateDirectory(Constants.UploadFilesFolder);
+                }
+
+
                 BuildWebHost(args).Run();
+
+                
+
             }
             catch (Exception exception)
             {
                 //NLog: catch setup errors
                 logger.Error(exception, "Stopped program because of exception");
-                throw;
+                return; throw;
             }
             finally
             {

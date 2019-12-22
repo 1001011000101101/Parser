@@ -11,6 +11,8 @@ using System.Web;
 using Microsoft.Extensions.Hosting;
 using NLog.Web;
 using Parser.Server.Code;
+using System.IO;
+using System.Net.Http;
 
 
 //using Newtonsoft.Json;
@@ -39,7 +41,7 @@ namespace Parser.Server.Controllers
         {
 
             logger.LogDebug("Get settings()");
-            using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.dbFileLocation)))
+            using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.DbFileLocation)))
             {
                 // Get a collection (or create, if doesn't exist)
                 var settings = db.GetCollection<Settings>(nameof(Settings).ToLower());
@@ -54,8 +56,6 @@ namespace Parser.Server.Controllers
 
                 return settings.FindAll().SingleOrDefault();
             }
-
-            
         }
 
         [HttpPost]
@@ -66,7 +66,7 @@ namespace Parser.Server.Controllers
             
      
             // Open database (or create if doesn't exist)
-            using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.dbFileLocation)))
+            using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.DbFileLocation)))
             {
                 // Get a collection (or create, if doesn't exist)
                 var col = db.GetCollection<Settings>(nameof(Settings).ToLower());
@@ -114,6 +114,89 @@ namespace Parser.Server.Controllers
             result.Message = "Настройки успешно сохранены";
             result.NeedShowMessage = true;
 
+
+
+            return result;
+        }
+
+        [HttpGet]
+        [Route("CompaniesCount")]
+        public int CompaniesCount()
+        {
+            //logger.LogDebug("Get settings()");
+            using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.DbFileLocation)))
+            {
+                // Get a collection (or create, if doesn't exist)
+                var companies = db.GetCollection<Company>("Companies");
+
+                return companies.Count();
+            }
+        }
+
+        [HttpPost]
+        [Route("UploadCompanies")]
+        public async Task<HttpResponseMessage> UploadCompanies()
+        {
+            var result = new HttpResponseMessage();
+            string fileName = string.Empty;
+            string path = string.Empty;
+
+            try
+            {
+                if (HttpContext.Request.Form.Files.Any())
+                {
+                    foreach (var file in HttpContext.Request.Form.Files)
+                    {
+                        fileName = file.FileName;
+                        path = Path.Combine(env.ContentRootPath, Constants.UploadFilesFolder, file.FileName);
+                        using (var stream = new FileStream(path, System.IO.FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+                    }
+
+
+                    // Open database (or create if doesn't exist)
+                    using (var db = new LiteDatabase(Path.Combine(env.ContentRootPath, Constants.DbFileLocation)))
+                    {
+                        // Get a collection (or create, if doesn't exist)
+                        var settings = db.GetCollection<Settings>(nameof(Settings).ToLower());
+
+                        var s = settings.FindAll().SingleOrDefault();
+                        if (s == null)
+                        {
+                            settings.Insert(new Settings());
+                        }
+
+                        //Delete previous uploaded file
+                        string prevFile = Path.Combine(Path.GetDirectoryName(path), s.CompaniesFileName);
+                        if (s.CompaniesFileIsUploaded && System.IO.File.Exists(prevFile))
+                        {
+                            try
+                            {
+                                System.IO.File.Delete(prevFile);
+                            }
+                            catch (Exception) {}
+                        }
+
+                        s.CompaniesFileIsUploaded = true;
+                        s.CompaniesFileName = fileName;
+                        settings.Update(s);
+
+                        settings.EnsureIndex(x => x.CompaniesFileName);
+                        settings.EnsureIndex(x => x.CompaniesFileIsUploaded);
+                    }
+
+                }
+                result.StatusCode = System.Net.HttpStatusCode.OK;
+                result.ReasonPhrase = "Компании успешно загружены";
+            }
+            catch (Exception e)
+            {
+                result.StatusCode = System.Net.HttpStatusCode.InternalServerError;
+                result.ReasonPhrase = e.Message;
+                logger.LogDebug(e.Message);
+            }
 
 
             return result;

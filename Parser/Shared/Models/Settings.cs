@@ -14,5 +14,8 @@ namespace Parser.Shared.Models
         public DateTime ClaimAmountPeriodStart { get; set; }
         public DateTime ClaimAmountPeriodEnd { get; set; }
         public int ClaimAmountPercent { get; set; }
+        public bool CompaniesFileIsUploaded { get; set; }
+        public string CompaniesFileName { get; set; }
+
     }
 }

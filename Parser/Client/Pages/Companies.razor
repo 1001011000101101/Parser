@@ -1,127 +1,35 @@
 ﻿@page "/companies"
 @using Parser.Shared.Models
+@using System.IO
+@using BlazorInputFile
 
 @inject HttpClient Http
 @inject BlazorTimer Timer
 
 
-<h1>Реестр компаний Сделать!</h1>
+<h1>Реестр компаний</h1>
 
 <BSAlert Color="Color.Light">
-    @message
+    @status
 </BSAlert>
 
 
-@if (settings == null)
+@if (companiesCount == null)
 {
     <p><em>Загрузка</em></p>
 }
 else
 {
-
-
-
-<BSContainer>
-
-    <BSRow>
-        <BSCol>
-            <BSFormGroup>
-                <BSLabel For="regionInput">Регион</BSLabel>
-                <BSBasicInput ValueChanged="@((string x) => RegionChanged(x))" Id="regionInput" InputType="InputType.Text" PlaceHolder="Регион поиска" Value="@settings.Region"></BSBasicInput>
-                <small id="regionHelp" class="form-text text-muted"></small>
-            </BSFormGroup>
-        </BSCol>
-    </BSRow>
-    <BSRow>
-        <BSCol>
-            <BSFormGroup>
-                <BSLabel For="okvedInput">ОКВЭД</BSLabel>
-                <BSBasicInput ValueChanged="@((string x) => OkvedChanged(x))" Id="okvedInputInput" InputType="InputType.Text" PlaceHolder="" Value="@settings.Okved"></BSBasicInput>
-                <small id="okvedHelp" class="form-text text-muted"></small>
-            </BSFormGroup>
-        </BSCol>
-    </BSRow>
-    <BSRow>
-        <BSCol>
-            <BSFormGroup>
-                <BSLabel For="debtPercentInput">Процент долга</BSLabel>
-                <BSBasicInput ValueChanged="@((int x) => DebtPercentChanged(x))" Id="debtPercentInput" InputType="InputType.Number" PlaceHolder="" Value="@settings.DebtPercent"></BSBasicInput>
-                <small id="debtPercentHelp" class="form-text text-muted">Размер кредитной задолженности не менее % от выручки</small>
-            </BSFormGroup>
-        </BSCol>
-    </BSRow>
-
-    <BSRow>
-        <BSCol>
-            <BSCard Alignment="Alignment.Center">
-                <BSCard CardType="CardType.Body">
-                    <BSCard CardType="CardType.Title">Сумма исков</BSCard>
-
-                    <BSRow>
-                        <BSCol>
-                            <BSFormGroup>
-                                <BSLabel For="claimAmountInput">Сумма исков</BSLabel>
-                                <BSBasicInput ValueChanged="@((double x) => ClaimAmountChanged(x))" Id="claimAmountInput" InputType="InputType.Number" PlaceHolder="" Value="@settings.ClaimAmount"></BSBasicInput>
-                                <small id="claimAmountHelp" class="form-text text-muted">Сумма исков не менее</small>
-                            </BSFormGroup>
-                        </BSCol>
-
-                        <BSCol>
-                            <BSFormGroup>
-                                <BSLabel For="claimAmountPeriodStartInput">Сумма исков c</BSLabel>
-                                <BSBasicInput ValueChanged="@((DateTime x) => ClaimAmountPeriodStartChanged(x))" Id="claimAmountPeriodStartInput" InputType="InputType.Date" PlaceHolder="" Value="@settings.ClaimAmountPeriodStart"></BSBasicInput>
-                                <small id="claimAmountPeriodStartHelp" class="form-text text-muted">Сумма исков начало периода</small>
-                            </BSFormGroup>
-                        </BSCol>
-
-                        <BSCol>
-                            <BSFormGroup>
-                                <BSLabel For="claimAmountPeriodEndInput">Сумма исков по</BSLabel>
-                                <BSBasicInput ValueChanged="@((DateTime x) => ClaimAmountPeriodEndChanged(x))" Id="claimAmountPeriodEndInput" InputType="InputType.Date" PlaceHolder="" Value="@settings.ClaimAmountPeriodEnd"></BSBasicInput>
-                                <small id="claimAmountPeriodEndHelp" class="form-text text-muted">Сумма исков конец периода</small>
-                            </BSFormGroup>
-                        </BSCol>
-
-                        <BSCol>
-                            <BSFormGroup>
-                                <BSLabel For="claimAmountPercentInput">Процент сумма исков</BSLabel>
-                                <BSBasicInput ValueChanged="@((int x) => ClaimAmountPercentChanged(x))" Id="claimAmountPercentInput" InputType="InputType.Number" PlaceHolder="" Value="@settings.ClaimAmountPercent"></BSBasicInput>
-                                <small id="claimAmountPercentHelp" class="form-text text-muted">Размер исков за указанный период выше не менее..% от выручки</small>
-                            </BSFormGroup>
-                        </BSCol>
-
-                    </BSRow>
-
-                </BSCard>
-            </BSCard>
-        </BSCol>
-
-    </BSRow>
-
-
-    
-
-
-
-
-
-</BSContainer>
-
-
-
-
-    <BSBasicForm>
-        
-
-        
-
-       
-
-        
-
-
-
-    </BSBasicForm>
+    <BSCard Alignment="Alignment.Center">
+        <BSCard CardType="CardType.Body">
+            <BSBasicForm>
+                <BSFormGroup>
+                    <BSLabel For="exampleFormControlFile1">Реесть компаний</BSLabel>
+                    <InputFile OnChange="HandleSelection" />
+                </BSFormGroup>
+            </BSBasicForm>
+        </BSCard>
+    </BSCard>
 }
 
 
@@ -129,70 +37,44 @@ else
 
 
 @code {
-    private Settings settings;
-    private string message;
+    private int? companiesCount;
+    string status;
 
     protected override async Task OnInitializedAsync()
     {
-        settings = await Http.GetJsonAsync<Settings>(nameof(Settings));
+        companiesCount = await Http.GetJsonAsync<int>("Settings/CompaniesCount");
+        status = "На входе - эксель. ИНН - первый столбец";
     }
 
-    protected async Task RegionChanged(string region)
+    async Task HandleSelection(IFileListEntry[] files)
     {
-        settings.Region = region;
-        await SaveSettingsAsync();
-    }
+        Console.WriteLine($"HandleSelection");
 
-    protected async Task OkvedChanged(string okved)
-    {
-        settings.Okved = okved;
-        await SaveSettingsAsync();
-    }
-
-    protected async Task DebtPercentChanged(int debtPercent)
-    {
-        settings.DebtPercent = debtPercent;
-        await SaveSettingsAsync();
-    }
-
-    protected async Task ClaimAmountChanged(double claimAmount)
-    {
-        settings.ClaimAmount = claimAmount;
-        await SaveSettingsAsync();
-    }
-
-    protected async Task ClaimAmountPeriodStartChanged(DateTime periodStart)
-    {
-        settings.ClaimAmountPeriodStart = periodStart;
-        await SaveSettingsAsync();
-    }
-
-    protected async Task ClaimAmountPeriodEndChanged(DateTime periodEnd)
-    {
-        settings.ClaimAmountPeriodEnd = periodEnd;
-        await SaveSettingsAsync();
-    }
-
-    protected async Task ClaimAmountPercentChanged(int claimAmountPercent)
-    {
-        settings.ClaimAmountPercent = claimAmountPercent;
-        await SaveSettingsAsync();
-    }
-
-
-    protected async Task SaveSettingsAsync()
-    {
-        var result = await Http.PostJsonAsync<Responce>(nameof(Settings), settings);
-        message = result.Message;
-
-        Timer.SetTimer(5000);
-        Timer.OnElapsed += CloseAlert;
-    }
-
-    protected void CloseAlert()
-    {
-        message = "";
+        status = "Загрузка....";
         this.StateHasChanged();
+
+        var file = files.FirstOrDefault();
+        if (file != null)
+        {
+            // Just load into .NET memory to show it can be done
+            // Alternatively it could be saved to disk, or parsed in memory, or similar
+            var ms = new MemoryStream();
+            await file.Data.CopyToAsync(ms);
+
+            status = $"Finished loading {file.Size} bytes from {file.Name}";
+            Console.WriteLine(status);
+
+            var content = new MultipartFormDataContent {
+                { new ByteArrayContent(ms.GetBuffer()), "\"upload\"", file.Name }
+            };
+            var responce = await Http.PostAsync("Settings/UploadCompanies", content);
+            if (responce.ReasonPhrase.Length > 0)
+            {
+                status = responce.ReasonPhrase;
+            }
+            this.StateHasChanged();
+        }
     }
+
 
 }
