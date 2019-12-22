@@ -16,6 +16,7 @@ namespace Parser.Shared.Models
         public int ClaimAmountPercent { get; set; }
         public bool CompaniesFileIsUploaded { get; set; }
         public string CompaniesFileName { get; set; }
+        public DateTime CompaniesFileUploadedDate { get; set; }
 
     }
 }

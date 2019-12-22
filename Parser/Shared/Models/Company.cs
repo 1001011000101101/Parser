@@ -8,6 +8,7 @@ namespace Parser.Shared.Models
     {
         public int Id { get; set; }
         public string Inn { get; set; }
+        public string Ogrn { get; set; }
         //public string Region { get; set; }
         //public string Okved { get; set; }
         //public int DebtPercent { get; set; }

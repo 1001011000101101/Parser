@@ -26,6 +26,9 @@ namespace Parser.Server
             services.AddTransient<BlazorTimer>();
             services.AddTransient<ParserService>();
             services.AddSingleton<IHostedService>(p => p.GetService<ParserService>());
+
+            //services.AddTransient<DebtIncomeParserService>();
+            //services.AddSingleton<IHostedService>(p => p.GetService<DebtIncomeParserService>());
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

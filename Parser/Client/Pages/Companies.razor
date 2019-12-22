@@ -14,7 +14,7 @@
 </BSAlert>
 
 
-@if (companiesCount == null)
+@if (companiesResponce == null)
 {
     <p><em>Загрузка</em></p>
 }
@@ -24,7 +24,7 @@ else
         <BSCard CardType="CardType.Body">
             <BSBasicForm>
                 <BSFormGroup>
-                    <BSLabel For="exampleFormControlFile1">Реесть компаний</BSLabel>
+                    <BSLabel For="exampleFormControlFile1">Реестр компаний</BSLabel>
                     <InputFile OnChange="HandleSelection" />
                 </BSFormGroup>
             </BSBasicForm>
@@ -37,13 +37,20 @@ else
 
 
 @code {
-    private int? companiesCount;
+    private CompaniesResponce companiesResponce;
     string status;
 
     protected override async Task OnInitializedAsync()
     {
-        companiesCount = await Http.GetJsonAsync<int>("Settings/CompaniesCount");
-        status = "На входе - эксель. ИНН - первый столбец";
+        companiesResponce = await Http.GetJsonAsync<CompaniesResponce>("Settings/CompaniesInfo");
+
+        string info = string.Empty;
+        if (companiesResponce.CompaniesFileIsUploaded)
+        {
+            info = $"Загружено ({companiesResponce.CompaniesFileName} / {companiesResponce.CompaniesFileUploadedDate})";
+        }
+
+        status =  $"На входе - эксель. ИНН - первый столбец. {Environment.NewLine} {info}" ;
     }
 
     async Task HandleSelection(IFileListEntry[] files)

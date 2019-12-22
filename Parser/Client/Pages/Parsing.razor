@@ -44,9 +44,9 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await Http.GetJsonAsync<ParserResponce>("Parsing");
+        var result = await Http.GetJsonAsync<ParserResponce>("Parsing/ParserState");
 
-        if (result.ParserIsBusy)
+        if (result.ParserState.IsBusy)
         {
             message = messageStop;
             color = Color.Success;
@@ -58,7 +58,7 @@ else
         }
 
 
-        parserIsBusy = result.ParserIsBusy;
+        parserIsBusy = result.ParserState.IsBusy;
         this.StateHasChanged();
     }
 
@@ -67,11 +67,11 @@ else
         message = messageInProcess;
         this.StateHasChanged();
 
-        var result = await Http.PutJsonAsync<ParserResponce>("Parsing", new object());
+        var result = await Http.PutJsonAsync<ParserResponce>("Parsing/ParserStateToggle", new object());
 
 
 
-        if (result.ParserIsBusy)
+        if (result.ParserState.IsBusy)
         {
             message = messageStop;
             color = Color.Success;

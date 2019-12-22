@@ -120,16 +120,23 @@ namespace Parser.Server.Controllers
         }
 
         [HttpGet]
-        [Route("CompaniesCount")]
-        public int CompaniesCount()
+        [Route("CompaniesInfo")]
+        public Responce CompaniesInfo()
         {
             //logger.LogDebug("Get settings()");
             using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.DbFileLocation)))
             {
                 // Get a collection (or create, if doesn't exist)
+                var settings = db.GetCollection<Settings>(nameof(Settings).ToLower()).FindAll().SingleOrDefault();
                 var companies = db.GetCollection<Company>("Companies");
 
-                return companies.Count();
+                return new CompaniesResponce()
+                {
+                    CompaniesFileIsUploaded = settings.CompaniesFileIsUploaded,
+                    CompaniesCount = companies.Count(),
+                    CompaniesFileName = settings.CompaniesFileName, 
+                    CompaniesFileUploadedDate = settings.CompaniesFileUploadedDate
+                };
             }
         }
 
@@ -181,12 +188,12 @@ namespace Parser.Server.Controllers
 
                         s.CompaniesFileIsUploaded = true;
                         s.CompaniesFileName = fileName;
+                        s.CompaniesFileUploadedDate = DateTime.Now.Date;
                         settings.Update(s);
 
                         settings.EnsureIndex(x => x.CompaniesFileName);
                         settings.EnsureIndex(x => x.CompaniesFileIsUploaded);
                     }
-
                 }
                 result.StatusCode = System.Net.HttpStatusCode.OK;
                 result.ReasonPhrase = "Компании успешно загружены";

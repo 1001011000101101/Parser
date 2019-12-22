@@ -35,56 +35,58 @@ namespace Parser.Server.Controllers
         }
 
         [HttpGet]
+        [Route("ParserState")]
         public Responce Get()
         {
             ParserResponce result = new ParserResponce();
             result.Success = true;
-            result.ParserIsBusy = parserService.IsBusy;
+            result.ParserState.IsBusy = parserService.State.IsBusy;
             return result;
         }
 
-        [HttpPost]
-        public Responce StartParsing()
-        {
-            Responce result = new Responce();
+        //[HttpPost]
+        //public Responce StartParsing()
+        //{
+        //    Responce result = new Responce();
 
-            parserService.Start();
+        //    parserService.Start();
 
-            result.Success = true;
-            result.Message = "Парсер запущен";
-            result.NeedShowMessage = true;
+        //    result.Success = true;
+        //    result.Message = "Парсер запущен";
+        //    result.NeedShowMessage = true;
 
-            return result;
-        }
+        //    return result;
+        //}
 
-        [HttpPost]
-        public Responce StopParsing()
-        {
-            Responce result = new Responce();
+        //[HttpPost]
+        //public Responce StopParsing()
+        //{
+        //    Responce result = new Responce();
 
-            parserService.Stop();
+        //    parserService.Stop();
 
-            result.Success = true;
-            result.Message = "Парсер остановлен";
-            result.NeedShowMessage = true;
+        //    result.Success = true;
+        //    result.Message = "Парсер остановлен";
+        //    result.NeedShowMessage = true;
 
-            return result;
-        }
+        //    return result;
+        //}
 
         [HttpPut]
-        public Responce Toggle()
+        [Route("ParserStateToggle")]
+        public Responce ParserStateToggle()
         {
             ParserResponce result = new ParserResponce();
 
-            if (parserService.IsBusy)
+            if (parserService.State.IsBusy)
             {
                 parserService.Stop();
-                result.ParserIsBusy = false;
+                result.ParserState.IsBusy = false;
             }
             else
             {
                 parserService.Start();
-                result.ParserIsBusy = true;
+                result.ParserState.IsBusy = true;
             }
             
 

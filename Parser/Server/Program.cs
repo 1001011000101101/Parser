@@ -6,7 +6,7 @@ using NLog.Web;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Parser.Shared.Models;
-
+using System.Text;
 
 namespace Parser.Server
 {
@@ -19,6 +19,9 @@ namespace Parser.Server
             try
             {
                 logger.Debug("init main");
+
+                //https://stackoverflow.com/questions/47851858/stg-e-writefault-while-reading-excel-file-with-epplus
+                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
                 if (!System.IO.Directory.Exists(Constants.UploadFilesFolder))
                 {

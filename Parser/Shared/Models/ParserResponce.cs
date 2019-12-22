@@ -6,6 +6,11 @@ namespace Parser.Shared.Models
 {
     public class ParserResponce: Responce
     {
-        public bool ParserIsBusy { get; set; }
+        public ParserState ParserState { get; set; }
+
+        public ParserResponce()
+        {
+            ParserState = new ParserState();
+        }
     }
 }

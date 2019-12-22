@@ -10,5 +10,6 @@ namespace Parser.Shared.Models
         public static string WebDriverFolder { get; } = @"Files\";
         public static string UploadFilesFolder { get; } = @"UploadedFiles\";
         public static string RusProfileUrl { get; } = @"https://www.rusprofile.ru/";
+        public static string RusProfileFinReportsUrl { get; } = @"https://www.rusprofile.ru/accounting?ogrn=";
     }
 }

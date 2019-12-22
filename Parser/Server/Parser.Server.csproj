@@ -35,4 +35,10 @@
     <Folder Include="Files\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="EPPlus">
+      <HintPath>Files\EPPlus.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
