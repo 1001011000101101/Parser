@@ -3,9 +3,11 @@
 @using System.IO
 @using BlazorInputFile
 
+
 @inject HttpClient Http
 @inject BlazorTimer Timer
-
+@inject Microsoft.AspNetCore.Components.NavigationManager NavigationManager
+@inject IJSRuntime  JsRuntime
 
 <h1>Реестр компаний</h1>
 
@@ -30,6 +32,14 @@ else
             </BSBasicForm>
         </BSCard>
     </BSCard>
+
+    <BSCard Alignment="Alignment.Center">
+        <BSCard CardType="CardType.Body">
+            <BSCard CardType="CardType.Title">Скачать</BSCard>
+            <BSButton OnClick="DownloadFile" Color="Color.Success">Скачать</BSButton>
+
+        </BSCard>
+    </BSCard>
 }
 
 
@@ -50,7 +60,7 @@ else
             info = $"Загружено ({companiesResponce.CompaniesFileName} / {companiesResponce.CompaniesFileUploadedDate})";
         }
 
-        status =  $"На входе - эксель. ИНН - первый столбец. {Environment.NewLine} {info}" ;
+        status = $"На входе - эксель. ИНН - первый столбец. {Environment.NewLine} {info}";
     }
 
     async Task HandleSelection(IFileListEntry[] files)
@@ -81,6 +91,11 @@ else
             }
             this.StateHasChanged();
         }
+    }
+
+    public void DownloadFile()
+    {
+        JsRuntime.InvokeVoidAsync("navigateTo", new object[] { "Settings/DownloadCompanies" });
     }
 
 

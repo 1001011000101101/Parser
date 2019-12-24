@@ -35,12 +35,14 @@ namespace Parser.Server.Controllers
         }
 
         [HttpGet]
-        [Route("ParserState")]
+        [Route("ParserByInnState")]
         public Responce Get()
         {
             ParserResponce result = new ParserResponce();
             result.Success = true;
-            result.ParserState.IsBusy = parserService.State.IsBusy;
+            result.ParserState.IsBusy = parserService.ParserByInnState.IsBusy;
+            result.ParserState.Description = parserService.ParserByInnState.Description;
+
             return result;
         }
 
@@ -73,19 +75,19 @@ namespace Parser.Server.Controllers
         //}
 
         [HttpPut]
-        [Route("ParserStateToggle")]
-        public Responce ParserStateToggle()
+        [Route("ParserByInnStateToggle")]
+        public Responce ParserByInnStateToggle()
         {
             ParserResponce result = new ParserResponce();
 
-            if (parserService.State.IsBusy)
+            if (parserService.ParserByInnState.IsBusy)
             {
-                parserService.Stop();
+                parserService.StopParserByInn();
                 result.ParserState.IsBusy = false;
             }
             else
             {
-                parserService.Start();
+                parserService.StartParserByInn();
                 result.ParserState.IsBusy = true;
             }
             

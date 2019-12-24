@@ -13,6 +13,7 @@ using NLog.Web;
 using Parser.Server.Code;
 using System.IO;
 using System.Net.Http;
+using OfficeOpenXml;
 
 
 //using Newtonsoft.Json;
@@ -40,8 +41,8 @@ namespace Parser.Server.Controllers
         public Settings Get()
         {
 
-            logger.LogDebug("Get settings()");
-            using (var db = new LiteDatabase(System.IO.Path.Combine(env.ContentRootPath, Constants.DbFileLocation)))
+            logger.LogDebug($"Get settings() root: {env.ContentRootPath} dbLocation: {Constants.DbFileLocation}");
+            using (var db = new LiteDatabase(Path.Combine(env.ContentRootPath, Constants.DbFileLocation)))
             {
                 // Get a collection (or create, if doesn't exist)
                 var settings = db.GetCollection<Settings>(nameof(Settings).ToLower());
@@ -207,6 +208,49 @@ namespace Parser.Server.Controllers
 
 
             return result;
+        }
+
+        [Route("DownloadCompanies")]
+        public FileResult DownloadCompanies()
+        {
+            Settings settings = null;
+            List<Company> companies = new List<Company>();
+
+            using (var db = new LiteDatabase(Path.Combine(env.ContentRootPath, Constants.DbFileLocation)))
+            {
+                var collection = db.GetCollection<Settings>(nameof(Settings).ToLower());
+
+                var s = collection.FindAll().SingleOrDefault();
+                if (s == null)
+                {
+                    collection.Insert(new Settings());
+                }
+
+                settings = collection.FindAll().SingleOrDefault();
+
+                companies = db.GetCollection<Company>("companies").FindAll().ToList();
+            }
+            string path = Path.Combine(env.ContentRootPath, Constants.UploadFilesFolder, settings.CompaniesFileName);
+
+            string pathTemp = Path.Combine(env.ContentRootPath, Constants.TempFilesFolder, settings.CompaniesFileName);
+            System.IO.File.Copy(path, pathTemp, true);
+
+            using (ExcelPackage excelPackage = new ExcelPackage(new FileInfo(pathTemp)))
+            {
+                var excelWorkbook = excelPackage.Workbook;
+                var sheet = excelWorkbook.Worksheets.Add(settings.CompaniesFileName);
+
+                for (int row = 0; row < companies.Count; row++)
+                {
+                    sheet.Cells[row + 1, 1].Value = companies[row].Inn;
+                    sheet.Cells[row + 1, 2].Value = companies[row].Ogrn;
+                }
+
+                excelPackage.Save();
+            }
+
+
+            return this.File(System.IO.File.ReadAllBytes(pathTemp), "application/zip", settings.CompaniesFileName);
         }
     }
 }

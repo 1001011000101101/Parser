@@ -339,3 +339,4 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 /Parser/Server/UploadedFiles
+/Parser/Server/TempFiles

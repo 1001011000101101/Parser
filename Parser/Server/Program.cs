@@ -28,6 +28,11 @@ namespace Parser.Server
                     System.IO.Directory.CreateDirectory(Constants.UploadFilesFolder);
                 }
 
+                if (!System.IO.Directory.Exists(Constants.TempFilesFolder))
+                {
+                    System.IO.Directory.CreateDirectory(Constants.TempFilesFolder);
+                }
+
 
                 BuildWebHost(args).Run();
 
