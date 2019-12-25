@@ -23,9 +23,14 @@ namespace Parser.Server
                 opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
                     new[] { "application/octet-stream" });
             });
+
+            services.AddScoped<IDb, Db>();
+
             services.AddTransient<BlazorTimer>();
             services.AddTransient<ParserService>();
             services.AddSingleton<IHostedService>(p => p.GetService<ParserService>());
+
+            
 
             //services.AddTransient<DebtIncomeParserService>();
             //services.AddSingleton<IHostedService>(p => p.GetService<DebtIncomeParserService>());

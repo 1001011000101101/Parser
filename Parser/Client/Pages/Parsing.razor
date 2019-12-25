@@ -53,9 +53,15 @@ else
         {
             messageParserByInn = messageStop;
             colorParserByInn = Color.Success;
+
+
+            Timer.SetTimer(5000, true);
+            Timer.OnElapsed += UpdateStateParserByInn;
         }
         else
         {
+            stateParserByInn = result.ParserState.Description;
+
             messageParserByInn = messageRun;
             colorParserByInn = Color.Secondary;
         }

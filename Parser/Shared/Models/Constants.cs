@@ -17,5 +17,8 @@ namespace Parser.Shared.Models
         public static string False { get; } = @"False";
 
         public static string OnlyDigitsRegex = @"[0-9]+";
+
+        public static string ProxyListUrl = @"http://hidemyna.me/api/proxylist.txt?anon=4&out=plain&lang=en&code=";
+        public static int ProxyErrorLimit { get; } = 2;
     }
 }

@@ -21,26 +21,37 @@ namespace Parser.Server.Code
 {
     public class ParserByInnWorker : BaseWorker
     {
-        public ParserByInnWorker(IHostEnvironment env, ILogger<ParserService> logger) : base(env, logger)
+        string ip = string.Empty;
+        int failCount;
+        private static object locker = new Object();
+
+        public ParserByInnWorker(IHostEnvironment env, ILogger<ParserService> logger, IDb db) : base(env, logger, db)
         {
         }
         public override void DoWork()
         {
             ChromeDriver browser = null;
 
-            try
+            logger.LogDebug($"ParserByInnWorker is starting.");
+            State.IsBusy = true;
+
+            State.Description = "ParserByInnWorker is starting";
+            logger.LogDebug($"companies.Count = {companies.Count}");
+
+
+            KeyValuePair<string, int> pair = new KeyValuePair<string, int>();
+            //parsingToken.Register(() =>
+            //    logger.LogDebug($" GracePeriod background task is stopping."));
+
+            for (int i = 0; i < companies.Count; i++)
             {
-                logger.LogDebug($"ParserByInnWorker is starting.");
-                State.IsBusy = true;
-
-                State.Description = "ParserByInnWorker is starting";
-                logger.LogDebug($"companies.Count = {companies.Count}");
+                bool polled = false;
 
 
-                //parsingToken.Register(() =>
-                //    logger.LogDebug($" GracePeriod background task is stopping."));
 
-                for (int i = 0; i < companies.Count; i++)
+
+
+                while (!polled)
                 {
                     if (needStop)
                     {
@@ -48,73 +59,117 @@ namespace Parser.Server.Code
                         return;
                     }
 
-                    var chromeOptions = new ChromeOptions();
-                    //chromeOptions.AddArguments("headless");
-                    //chromeOptions.AddArgument("--blink-settings=imagesEnabled=false");
-                    chromeOptions.AddArgument("--disable-application-cache");
-                    browser = new ChromeDriver(Constants.WebDriverFolder, chromeOptions);
-                    IJavaScriptExecutor js = (IJavaScriptExecutor)browser;
-
-                    var company = companies[i];
+                    pair = GetKey();
 
 
-                    Regex regex = new Regex(Constants.OnlyDigitsRegex, RegexOptions.IgnoreCase);
-                    Match match = regex.Match(company.Inn);
-  
 
-                    if (match.Success)
+
+                    try
                     {
-                        company.Inn = match.Groups[0].Value;
+                        var chromeOptions = new ChromeOptions();
+                        //chromeOptions.AddArguments("headless");
+                        //chromeOptions.AddArgument("--blink-settings=imagesEnabled=false");
+                        chromeOptions.AddArgument("--disable-application-cache");
+                        chromeOptions.AddArguments($"--proxy-server=socks4://{pair.Key}");
+
+                        browser = new ChromeDriver(Constants.WebDriverFolder, chromeOptions);
+                        IJavaScriptExecutor js = (IJavaScriptExecutor)browser;
+
+
+
+                        var company = companies[i];
+                        company.Inn = GetOnlyDigits(company.Inn);
+
+
+                        State.Description = $"Work with {company.Inn} ({(i + 1)}/{companies.Count}). Get debt-to-income ratio";
+
+                        //Go to search page
+                        browser.Navigate().GoToUrl(Constants.RusProfileUrl);
+
+                        var element = FindElement(browser, By.CssSelector("#indexsearchform input.index-search-input"), "Кнопка поиска", company);
+                        element.Clear();
+                        element.SendKeys(company.Inn);
+                        js.ExecuteScript($"document.querySelector('#indexsearchform button.search-btn').click();");
+
+
+
+                        element = FindElement(browser, By.CssSelector("#clip_ogrn"), "Поле ОРГН", company);
+
+
+
+                        company.Ogrn = js.ExecuteScript("var element = document.querySelector('#clip_ogrn'); return element.innerHTML; ")?.ToString();
+
+                        browser.Navigate().GoToUrl(Constants.RusProfileFinReportsUrl + company.Ogrn);
+                        var isFinReportsExists = js.ExecuteScript("var element = document.querySelector('body.page404'); return element == null; ")?.ToString();
+
+
+
+
+                        if (isFinReportsExists.Equals(Constants.True))
+                        {
+                            string annualIncome = string.Empty;
+                            string debt = string.Empty;
+
+                            annualIncome = js.ExecuteScript(" var es = document.querySelectorAll('div.tile-item__title'); for (var i = 0; i < es.length; i++) if (es[i].textContent.indexOf('Доходы и расходы по обычным видам деятельности') >= 0) return es[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.lastElementChild.lastElementChild.innerHTML; return ''; ")?.ToString();
+                            debt = js.ExecuteScript(" var es = document.querySelectorAll('div.tile-item__title'); for (var i = 0; i < es.length; i++) if (es[i].textContent.indexOf('Краткосрочные обязательства') >= 0) return es[i].nextElementSibling.firstElementChild.firstElementChild.firstElementChild.lastElementChild.lastElementChild.innerHTML; return ''; ")?.ToString();
+
+                            company.AnnualIncome = int.Parse(GetOnlyDigits(annualIncome));
+                            company.Debt = int.Parse(GetOnlyDigits(debt));
+                        }
+
+
+
+
+                        db.UpdateCompanies(new List<Company> { company }, env.ContentRootPath);
+                        polled = true;
+
+                    }
+                    catch (Exception e)
+                    {
+                        Shutdown(browser);
+
+                        Proxy.Fail.Add((pair.Key, 0));
+                        logger.LogError($"ChromeDriver_ERROR {e.Message}");
+                        State.Description = e.Message;
+                    }
+                    finally
+                    {
+                        Shutdown(browser);
                     }
 
 
-                    State.Description = $"Work with {company.Inn} ({(i+1)}/{companies.Count}). Get debt-to-income ratio";
-                    
-
-                    browser.Navigate().GoToUrl(Constants.RusProfileUrl);
-
-                    //recaptcha-anchor
-                    var elementRecaptcha = js.ExecuteScript("var element = document.querySelector('#rc-anchor-container'); return element ");
-                    browser.FindElement(By.CssSelector("#rc-anchor-container"));
-                    if (elementRecaptcha != null)
-                    {
-                        js.ExecuteScript($"document.querySelector('##recaptcha-anchor').click();");
 
 
-                    }
-
-                    var element = browser.FindElement(By.CssSelector("#indexsearchform input.index-search-input"));
-                    element.Clear();
-                    element.SendKeys(company.Inn);
-                    js.ExecuteScript($"document.querySelector('#indexsearchform button.search-btn').click();");
-
-                    company.Ogrn = js.ExecuteScript("var element = document.querySelector('#clip_ogrn'); return element.innerHTML; ")?.ToString();
-
-                    browser.Navigate().GoToUrl(Constants.RusProfileFinReportsUrl + company.Ogrn);
-                    var isFinReportsExists = js.ExecuteScript("var element = document.querySelector('body.page404'); return element == null; ")?.ToString();
-
-                    UpdateCompanies(new List<Company> { company });
 
 
-                    if (isFinReportsExists.Equals(Constants.True))
-                    {
 
-                    }
 
-                    var rtrtrt = "";
-                    //await Task.Delay(5000, parsingToken);
-                    Thread.Sleep(10000);
 
-                    Shutdown(browser);
+
+
+
+
+
+
+
+
+
+
+
                 }
-            }
-            catch (Exception e)
-            {
-                logger.LogError($"ChromeDriver_ERROR {e.Message}");
-            }
-            finally
-            {
-                Shutdown(browser);
+
+
+
+
+
+
+
+
+
+
+
+
+
             }
 
 
@@ -343,5 +398,104 @@ namespace Parser.Server.Code
             Process = Process.Start(ProcessInfo);
         }
 
+        protected IWebElement FindElement(ChromeDriver browser, By by, string elementDescripntion, Company company)
+        {
+            IWebElement element = browser.FindElement(by);
+            if (element == null)
+            {
+                throw new Exception($"Что-то пошло не так. company.Inn {company.Inn} ERROR. элемент {elementDescripntion} на {Constants.RusProfileUrl} не найден [{DateTime.Now}]");
+            }
+
+            return element;
+        }
+
+
+        protected string GetOnlyDigits(string value)
+        {
+            Regex regex = new Regex(Constants.OnlyDigitsRegex, RegexOptions.IgnoreCase);
+            Match match = regex.Match(value);
+
+            if (match.Success)
+            {
+                return match.Groups[0].Value;
+            }
+
+            return string.Empty;
+        }
+
+
+        private KeyValuePair<string, int> GetKey()
+        {
+            int count = Proxy.All.Count();
+            Random random = new Random();
+
+            KeyValuePair<string, int> pair = new KeyValuePair<string, int>();
+            string[] proxies = Proxy.Fail.Where(x => x.Item2 == 0).Select(x => x.Item1).ToArray(); // keys.ToArray();
+
+            if (ip.Length > 0)
+            {
+                pair = new KeyValuePair<string, int>(ip, 0);
+            }
+            else if (failCount >= Constants.ProxyErrorLimit * 2)
+            {
+                pair = Proxy.Checked.FirstOrDefault(x => x.Value < Constants.ProxyErrorLimit && !proxies.Contains(x.Key));
+                failCount = 0;
+            }
+
+            lock (locker)
+            {
+                if (pair.Key.IsNullOrEmpty() && /*proxies.Count()*/Proxy.Fail.Count() > 0 && Proxy.Fail.DistinctBy(x => x.Item1).Count() * 1.2 > Proxy.All.Count() /*Proxy.All.All(x => proxies.Contains(x.Key))*/)
+                {
+                    if ((DateTime.Now - Proxy.ResreshDate).TotalMinutes < 10)
+                    {
+
+                        Thread.Sleep(TimeSpan.FromMinutes(2));
+                        return pair;
+                    }
+                    //log.Category("MeasuresHelper.ProxyRefresh").Info($"siteInCampaignID = {siteInCampaignID}");
+                    Proxy.RefreshList();
+                }
+            }
+
+            //  int i = random.Next(0, count - 1);
+            //        //pair = Proxy.List.FirstOrDefault(x => !proxies.Contains(x.Key) && x.Value < Settings.ProxyErrorLimit);
+            //      pair = Proxy.All.ElementAt(i);
+
+
+            int counter = 0;
+
+            if (ip.IsNullOrEmpty() && pair.Key.IsNullOrEmpty())
+            {
+                while (pair.Key.IsNullOrEmpty() || proxies.Contains(pair.Key) || pair.Value >= Constants.ProxyErrorLimit)
+                {
+                    counter++;
+                    if (counter > 1000)
+                    {
+                        //Proxy.RefreshList(NinjectConfig.Kernel.Get<ILog>());
+                        pair = Proxy.All.FirstOrDefault();
+                        break;
+                    }
+
+                    int i = random.Next(0, count - 1);
+                    //pair = Proxy.List.FirstOrDefault(x => !proxies.Contains(x.Key) && x.Value < Settings.ProxyErrorLimit);
+                    pair = Proxy.All.ElementAt(i);
+                }
+            }
+
+
+
+
+            //if (pair.Key.IsNullOrEmpty())
+            //{
+            //    log.Category("MeasuresHelper.Poll.KeyIsNull").Error($"keys: {String.Join(";", proxies)}{Environment.NewLine}");
+            //    log.Category("MeasuresHelper.Poll.KeyIsNull").Error($"List: {String.Join(";", Proxy.List.Select(x => new { Value = x.Key.ToString() + x.Value.ToString() }.Value))}{Environment.NewLine}");
+
+            //    //Proxy.RefreshList(log);
+            //    //keys.Clear();
+            //}
+
+
+            return pair;
+        }
     }
 }

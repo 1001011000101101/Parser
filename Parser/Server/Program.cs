@@ -57,7 +57,8 @@ namespace Parser.Server
                 .UseConfiguration(new ConfigurationBuilder()
                     .AddCommandLine(args)
                     .Build())
-                .UseStartup<Startup>()
+                .UseStartup<Startup>().UseDefaultServiceProvider(options =>
+            options.ValidateScopes = false)
             .ConfigureLogging(logging =>
             {
                 logging.ClearProviders();

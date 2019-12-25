@@ -28,7 +28,7 @@ namespace Parser.Server.Code
             get 
             {
                 if (parserByInnWorker == null)
-                    parserByInnWorker = new ParserByInnWorker(env, logger);
+                    parserByInnWorker = new ParserByInnWorker(env, logger, db);
 
                 return parserByInnWorker.State;
             } 
@@ -39,13 +39,15 @@ namespace Parser.Server.Code
 
         private bool needStop;
         protected IHostEnvironment env;
+        protected IDb db;
 
 
-        public ParserService(IHostEnvironment env, ILogger<ParserService> logger)
+        public ParserService(IHostEnvironment env, ILogger<ParserService> logger, IDb db)
         {
             this.logger = logger;
             this.env = env;
             State = new ParserState();
+            this.db = db;
         }
 
         protected override async Task ExecuteAsync(CancellationToken parsingToken)
@@ -53,14 +55,16 @@ namespace Parser.Server.Code
             try
             {
                 logger.LogDebug($"ParserService is starting.");
-                
 
-                parserByInnWorker = new ParserByInnWorker(env, logger);
+                Proxy.RefreshList();
+
+                parserByInnWorker = new ParserByInnWorker(env, logger, db);
 
 
                 parsingToken.Register(() =>
                     logger.LogDebug($" ParserService background task is stopping."));
 
+                
 
 
                 while (!needStop && !parsingToken.IsCancellationRequested)

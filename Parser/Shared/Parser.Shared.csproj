@@ -9,4 +9,8 @@
     <PackageReference Include="BlazorInputFile" Version="0.1.0-preview-00002" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Code\" />
+  </ItemGroup>
+
 </Project>
