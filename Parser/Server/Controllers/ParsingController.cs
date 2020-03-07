@@ -40,8 +40,8 @@ namespace Parser.Server.Controllers
         {
             ParserResponce result = new ParserResponce();
             result.Success = true;
-            result.ParserState.IsBusy = parserService.ParserByInnState.IsBusy;
-            result.ParserState.Description = parserService.ParserByInnState.Description;
+            result.ParserInfo.State = parserService.ParserByInnState.State;
+            result.ParserInfo.StateDescription = parserService.ParserByInnState.StateDescription;
 
             return result;
         }
@@ -80,15 +80,16 @@ namespace Parser.Server.Controllers
         {
             ParserResponce result = new ParserResponce();
 
-            if (parserService.ParserByInnState.IsBusy)
+            if (parserService.ParserByInnState.State == (int)Enums.ParserState.Started)
             {
+                result.ParserInfo.State = (int)Enums.ParserState.Undefined;
                 parserService.StopParserByInn();
-                result.ParserState.IsBusy = false;
+                //result.ParserInfo.IsBusy = false;
             }
             else
             {
                 parserService.StartParserByInn();
-                result.ParserState.IsBusy = true;
+                result.ParserInfo.State = (int)Enums.ParserState.Started;
             }
             
 

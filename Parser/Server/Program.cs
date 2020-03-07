@@ -7,6 +7,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Parser.Shared.Models;
 using System.Text;
+using Parser.Server.Code;
 
 namespace Parser.Server
 {
@@ -36,7 +37,6 @@ namespace Parser.Server
 
                 BuildWebHost(args).Run();
 
-                
 
             }
             catch (Exception exception)
@@ -56,6 +56,7 @@ namespace Parser.Server
             WebHost.CreateDefaultBuilder(args)
                 .UseConfiguration(new ConfigurationBuilder()
                     .AddCommandLine(args)
+                .AddJsonFile("appsettings.json", true)
                     .Build())
                 .UseStartup<Startup>().UseDefaultServiceProvider(options =>
             options.ValidateScopes = false)

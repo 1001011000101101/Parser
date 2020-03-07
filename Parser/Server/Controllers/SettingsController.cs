@@ -244,6 +244,9 @@ namespace Parser.Server.Controllers
                 {
                     sheet.Cells[row + 1, 1].Value = companies[row].Inn;
                     sheet.Cells[row + 1, 2].Value = companies[row].Ogrn;
+                    sheet.Cells[row + 1, 3].Value = companies[row].AnnualIncome;
+                    sheet.Cells[row + 1, 4].Value = companies[row].Debt;
+
                 }
 
                 excelPackage.Save();

@@ -21,7 +21,7 @@ namespace Parser.Server.Code
     {
         protected readonly ILogger<ParserService> logger;
 
-        public ParserState State { get; private set; }
+        public ParserInfo ParserInfo { get; private set; }
         
         protected bool needStop;
 
@@ -29,16 +29,19 @@ namespace Parser.Server.Code
         protected List<Company> companies;
         protected IHostEnvironment env;
         protected IDb db;
+        protected string proxyAccessCode = string.Empty;
 
-        public BaseWorker(IHostEnvironment env, ILogger<ParserService> logger, IDb db)
+        public BaseWorker(IHostEnvironment env, ILogger<ParserService> logger, IDb db, string proxyAccessCode)
         {
-            State = new ParserState();
+            ParserInfo = new ParserInfo() { State = (int)Enums.ParserState.Stopped };
             this.logger = logger;
             this.env = env;
             this.db = db;
+            
 
-            appSettings = db.GetSettings(env.ContentRootPath);
-            companies = db.GetCompaniesFromExcel(env.ContentRootPath);
+
+
+            this.proxyAccessCode = proxyAccessCode;
         }
 
         public virtual void DoWork()
@@ -48,7 +51,7 @@ namespace Parser.Server.Code
         public void Stop()
         {
             needStop = true;
-            while (State.IsBusy) Thread.Sleep(1000);
+            while (ParserInfo.State == (int)Enums.ParserState.Started) Thread.Sleep(1000);
         }
     }
 }

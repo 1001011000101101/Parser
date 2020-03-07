@@ -22,24 +22,42 @@ namespace Parser.Server.Code
     public class ParserByInnWorker : BaseWorker
     {
         string ip = string.Empty;
+        
         int failCount;
         private static object locker = new Object();
 
-        public ParserByInnWorker(IHostEnvironment env, ILogger<ParserService> logger, IDb db) : base(env, logger, db)
+        public ParserByInnWorker(IHostEnvironment env, ILogger<ParserService> logger, IDb db, string proxyAccessCode) : base(env, logger, db, proxyAccessCode)
         {
         }
         public override void DoWork()
         {
+            appSettings = db.GetSettings(env.ContentRootPath);
+            companies = db.GetCompaniesFromExcel(env.ContentRootPath);
+
+            ParserInfo.State = (int)Enums.ParserState.Started;
+            KeyValuePair<string, int> pair = new KeyValuePair<string, int>();
+
             ChromeDriver browser = null;
+            var chromeOptions = new ChromeOptions();
+            chromeOptions = new ChromeOptions();
+            //chromeOptions.AddArguments("headless");
+            chromeOptions.AddArgument("--blink-settings=imagesEnabled=false");
+            pair = GetKey();
+
+            chromeOptions.AddArgument("--disable-application-cache");
+            chromeOptions.AddArguments($"--proxy-server=socks4://{pair.Key}");
+
+            browser = new ChromeDriver(Constants.WebDriverFolder, chromeOptions);
+
+
 
             logger.LogDebug($"ParserByInnWorker is starting.");
-            State.IsBusy = true;
 
-            State.Description = "ParserByInnWorker is starting";
+
+            ParserInfo.StateDescription = "ParserByInnWorker is starting";
             logger.LogDebug($"companies.Count = {companies.Count}");
 
 
-            KeyValuePair<string, int> pair = new KeyValuePair<string, int>();
             //parsingToken.Register(() =>
             //    logger.LogDebug($" GracePeriod background task is stopping."));
 
@@ -47,50 +65,63 @@ namespace Parser.Server.Code
             {
                 bool polled = false;
 
-
-
-
-
                 while (!polled)
                 {
                     if (needStop)
                     {
-                        State.IsBusy = false;
+                        Shutdown(browser);
+                        ParserInfo.State = (int)Enums.ParserState.Stopped;
                         return;
                     }
 
-                    pair = GetKey();
-
-
-
-
                     try
                     {
-                        var chromeOptions = new ChromeOptions();
-                        //chromeOptions.AddArguments("headless");
-                        //chromeOptions.AddArgument("--blink-settings=imagesEnabled=false");
-                        chromeOptions.AddArgument("--disable-application-cache");
-                        chromeOptions.AddArguments($"--proxy-server=socks4://{pair.Key}");
-
-                        browser = new ChromeDriver(Constants.WebDriverFolder, chromeOptions);
                         IJavaScriptExecutor js = (IJavaScriptExecutor)browser;
-
-
 
                         var company = companies[i];
                         company.Inn = GetOnlyDigits(company.Inn);
 
 
-                        State.Description = $"Work with {company.Inn} ({(i + 1)}/{companies.Count}). Get debt-to-income ratio";
+                        ParserInfo.StateDescription = $"Work with {company.Inn} ({(i + 1)}/{companies.Count}). Get debt-to-income ratio proxy: {pair.Key}";
 
                         //Go to search page
                         browser.Navigate().GoToUrl(Constants.RusProfileUrl);
+
+
+                        //var isCheckFormExists = js.ExecuteScript("var element = document.querySelector('#checkform'); return element != null; ")?.ToString();
+                        //if (isCheckFormExists.Equals(Constants.True))
+                        //{
+                        //    string reCaptchaSource = browser.FindElement(By.CssSelector("#checkform iframe"))?.ToString();
+
+                        //    //js.ExecuteScript($"document.querySelector('#recaptcha-anchor').click();");
+
+                        //    var rtrtrt = "";
+
+                        //}
+                        //string pageSource = browser.PageSource;
+                        //int pageSourceLength = browser.PageSource.Length;
+
+
 
                         var element = FindElement(browser, By.CssSelector("#indexsearchform input.index-search-input"), "Кнопка поиска", company);
                         element.Clear();
                         element.SendKeys(company.Inn);
                         js.ExecuteScript($"document.querySelector('#indexsearchform button.search-btn').click();");
 
+
+
+                        //isCheckFormExists = js.ExecuteScript("var element = document.querySelector('#checkform'); return element != null; ")?.ToString();
+                        //if (isCheckFormExists.Equals(Constants.True))
+                        //{
+                        //    string reCaptchaSource = browser.FindElement(By.CssSelector("#checkform iframe"))?.ToString();
+
+                        //    //js.ExecuteScript($"document.querySelector('#recaptcha-anchor').click();");
+
+                        //    var rtrtrt = "";
+
+                        //}
+                        //pageSource = browser.PageSource;
+                        //pageSourceLength = browser.PageSource.Length;
 
 
                         element = FindElement(browser, By.CssSelector("#clip_ogrn"), "Поле ОРГН", company);
@@ -100,6 +131,20 @@ namespace Parser.Server.Code
                         company.Ogrn = js.ExecuteScript("var element = document.querySelector('#clip_ogrn'); return element.innerHTML; ")?.ToString();
 
                         browser.Navigate().GoToUrl(Constants.RusProfileFinReportsUrl + company.Ogrn);
+
+                        //isCheckFormExists = js.ExecuteScript("var element = document.querySelector('#checkform'); return element != null; ")?.ToString();
+                        //if (isCheckFormExists.Equals(Constants.True))
+                        //{
+                        //    string reCaptchaSource = browser.FindElement(By.CssSelector("#checkform iframe"))?.ToString();
+
+                        //    //js.ExecuteScript($"document.querySelector('#recaptcha-anchor').click();");
+
+                        //    var rtrtrt = "";
+
+                        //}
+                        //pageSource = browser.PageSource;
+                        //pageSourceLength = browser.PageSource.Length;
+
                         var isFinReportsExists = js.ExecuteScript("var element = document.querySelector('body.page404'); return element == null; ")?.ToString();
 
 
@@ -126,15 +171,30 @@ namespace Parser.Server.Code
                     }
                     catch (Exception e)
                     {
-                        Shutdown(browser);
-
                         Proxy.Fail.Add((pair.Key, 0));
                         logger.LogError($"ChromeDriver_ERROR {e.Message}");
-                        State.Description = e.Message;
+                        ParserInfo.StateDescription = e.Message;
+
+
+                        Shutdown(browser);
+
+                        
+
+                        pair = GetKey();
+
+
+
+                        chromeOptions = new ChromeOptions();
+                        //chromeOptions.AddArguments("headless");
+                        chromeOptions.AddArgument("--blink-settings=imagesEnabled=false");
+                        chromeOptions.AddArgument("--disable-application-cache");
+                        chromeOptions.AddArguments($"--proxy-server=socks4://{pair.Key}");
+
+                        browser = new ChromeDriver(Constants.WebDriverFolder, chromeOptions);
                     }
                     finally
                     {
-                        Shutdown(browser);
+                        //Shutdown(browser);
                     }
 
 
@@ -174,8 +234,9 @@ namespace Parser.Server.Code
 
 
 
+            Shutdown(browser);
 
-            State.IsBusy = false;
+            ParserInfo.State = (int)Enums.ParserState.Stopped;
             //return;
 
 
@@ -453,7 +514,7 @@ namespace Parser.Server.Code
                         return pair;
                     }
                     //log.Category("MeasuresHelper.ProxyRefresh").Info($"siteInCampaignID = {siteInCampaignID}");
-                    Proxy.RefreshList();
+                    Proxy.RefreshList(proxyAccessCode);
                 }
             }
 

@@ -13,7 +13,7 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using System.IO;
 using OfficeOpenXml;
-
+using Microsoft.Extensions.Configuration;
 
 namespace Parser.Server.Code
 {
@@ -21,16 +21,16 @@ namespace Parser.Server.Code
     {
         protected readonly ILogger<ParserService> logger;
 
-        public ParserState State { get; private set; }
+        public ParserInfo ParserInfo { get; private set; }
 
-        public ParserState ParserByInnState 
+        public ParserInfo ParserByInnState 
         { 
             get 
             {
                 if (parserByInnWorker == null)
-                    parserByInnWorker = new ParserByInnWorker(env, logger, db);
+                    parserByInnWorker = new ParserByInnWorker(env, logger, db, proxyAccessCode);
 
-                return parserByInnWorker.State;
+                return parserByInnWorker.ParserInfo;
             } 
             private set { } 
         }
@@ -40,14 +40,23 @@ namespace Parser.Server.Code
         private bool needStop;
         protected IHostEnvironment env;
         protected IDb db;
+        protected IConfiguration config;
+        protected string proxyAccessCode;
 
 
-        public ParserService(IHostEnvironment env, ILogger<ParserService> logger, IDb db)
+        public ParserService(IHostEnvironment env, ILogger<ParserService> logger, IDb db, IConfiguration config)
         {
             this.logger = logger;
             this.env = env;
-            State = new ParserState();
+            ParserInfo = new ParserInfo();
             this.db = db;
+            this.config = config;
+
+            var code = config.GetSection("Proxy:AccessCode");
+            if (code.Exists())
+            {
+                proxyAccessCode = code.Value;
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken parsingToken)
@@ -56,9 +65,9 @@ namespace Parser.Server.Code
             {
                 logger.LogDebug($"ParserService is starting.");
 
-                Proxy.RefreshList();
+                Proxy.RefreshList(proxyAccessCode);
 
-                parserByInnWorker = new ParserByInnWorker(env, logger, db);
+                parserByInnWorker = new ParserByInnWorker(env, logger, db, proxyAccessCode);
 
 
                 parsingToken.Register(() =>
@@ -79,7 +88,7 @@ namespace Parser.Server.Code
                 logger.LogError(e.Message);
             }
 
-            State.IsBusy = false;
+            ParserInfo.State = (int)Enums.ParserState.Stopped;
             logger.LogDebug($"ParserService background task is stopping.");
         }
 

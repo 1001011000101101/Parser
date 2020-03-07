@@ -21,6 +21,8 @@ namespace Parser.Shared.Models
 
         public void StopTimer()
         {
+            if (_timer == null) return;
+
             _timer.Enabled = false;
         }
 

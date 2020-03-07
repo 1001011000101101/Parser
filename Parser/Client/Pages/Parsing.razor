@@ -5,14 +5,14 @@
 @inject BlazorTimer Timer
 
 
-<h1>Парсинг</h1>
+<h1></h1>
 
 <BSAlert Color="Color.Light">
 
 </BSAlert>
 
 
-@if (isBusyParserByInn == null)
+@if (stateParserByInn == null)
 {
     <p><em>Загрузка</em></p>
 }
@@ -23,7 +23,7 @@ else
         <BSCard CardType="CardType.Body">
             <BSCard CardType="CardType.Title">Парсинг по ИНН</BSCard>
             <BSButton OnClick="ToggleStateParsing" Color="@colorParserByInn">@messageParserByInn</BSButton>
-            <BSCard CardType="CardType.Text">@stateParserByInn</BSCard>
+            <BSCard CardType="CardType.Text">@stateDescriptionParserByInn</BSCard>
         </BSCard>
     </BSCard>
 
@@ -41,77 +41,99 @@ else
     private string messageInProcess = "..........";
 
     private string messageParserByInn = "";
-    private bool? isBusyParserByInn;
+    private int? stateParserByInn;
     private Color colorParserByInn = Color.Secondary;
-    private string stateParserByInn = "";
+    private string stateDescriptionParserByInn = "";
 
     protected override async Task OnInitializedAsync()
     {
         var result = await Http.GetJsonAsync<ParserResponce>("Parsing/ParserByInnState");
 
-        if (result.ParserState.IsBusy)
-        {
-            messageParserByInn = messageStop;
-            colorParserByInn = Color.Success;
+        Timer.SetTimer(5000, true);
+        Timer.OnElapsed += UpdateStateParserByInn;
+
+        //var result = await Http.GetJsonAsync<ParserResponce>("Parsing/ParserByInnState");
+
+        //if (result.ParserInfo.State == (int)Enums.ParserState.Started)
+        //{
+        //    messageParserByInn = messageStop;
+        //    colorParserByInn = Color.Success;
 
 
-            Timer.SetTimer(5000, true);
-            Timer.OnElapsed += UpdateStateParserByInn;
-        }
-        else
-        {
-            stateParserByInn = result.ParserState.Description;
+        //    Timer.SetTimer(5000, true);
+        //    Timer.OnElapsed += UpdateStateParserByInn;
+        //}
+        //else
+        //{
+        //    stateDescriptionParserByInn = result.ParserInfo.StateDescription;
 
-            messageParserByInn = messageRun;
-            colorParserByInn = Color.Secondary;
-        }
+        //    messageParserByInn = messageRun;
+        //    colorParserByInn = Color.Secondary;
+        //}
 
 
-        isBusyParserByInn = result.ParserState.IsBusy;
-        this.StateHasChanged();
+        //stateParserByInn = result.ParserInfo.State;
+        //this.StateHasChanged();
     }
 
     async void ToggleStateParsing(MouseEventArgs e)
     {
+        var result = await Http.PutJsonAsync<ParserResponce>("Parsing/ParserByInnStateToggle", new object());
+
+
+        //Timer.SetTimer(5000, true);
+        //Timer.OnElapsed += UpdateStateParserByInn;
+
         messageParserByInn = messageInProcess;
         this.StateHasChanged();
 
-        var result = await Http.PutJsonAsync<ParserResponce>("Parsing/ParserByInnStateToggle", new object());
+        //messageParserByInn = messageInProcess;
+        //this.StateHasChanged();
 
-        if (result.ParserState.IsBusy)
-        {
-            messageParserByInn = messageStop;
-            colorParserByInn = Color.Success;
+        //Timer.StopTimer();
 
-            Timer.SetTimer(5000, true);
-            Timer.OnElapsed += UpdateStateParserByInn;
-        }
-        else
-        {
-            messageParserByInn = messageRun;
-            colorParserByInn = Color.Secondary;
-            Timer.StopTimer();
-        }
-        this.StateHasChanged();
+        //var result = await Http.PutJsonAsync<ParserResponce>("Parsing/ParserByInnStateToggle", new object());
+
+        //if (result.ParserInfo.State == (int)Enums.ParserState.Started)
+        //{
+        //    //messageParserByInn = messageStop;
+        //    //colorParserByInn = Color.Success;
+
+        //    Timer.SetTimer(5000, true);
+        //    Timer.OnElapsed += UpdateStateParserByInn;
+        //}
+        //else
+        //{
+        //    //messageParserByInn = messageRun;
+        //    //colorParserByInn = Color.Secondary;
+        //    Timer.StopTimer();
+        //}
+        //this.StateHasChanged();
     }
 
     async void UpdateStateParserByInn()
     {
         var result = await Http.GetJsonAsync<ParserResponce>("Parsing/ParserByInnState");
-        stateParserByInn = result.ParserState.Description;
-        if (result.ParserState.IsBusy)
+        stateDescriptionParserByInn = result.ParserInfo.StateDescription;
+
+        if (result.ParserInfo.State == (int)Enums.ParserState.Started)
         {
             messageParserByInn = messageStop;
             colorParserByInn = Color.Success;
         }
-        else
+        else if (result.ParserInfo.State == (int)Enums.ParserState.Stopped)
         {
             messageParserByInn = messageRun;
             colorParserByInn = Color.Secondary;
+            //Timer.StopTimer();
+        }
+        else
+        {
+            messageParserByInn = messageInProcess;
+            colorParserByInn = Color.Secondary;
         }
 
-
-        isBusyParserByInn = result.ParserState.IsBusy;
+        stateParserByInn = result.ParserInfo.State;
         this.StateHasChanged();
     }
 }

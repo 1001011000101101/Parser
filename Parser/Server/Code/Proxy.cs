@@ -22,8 +22,13 @@ namespace Parser.Server.Code
 
         public static DateTime ResreshDate;
 
-        public static void RefreshList()
+        public static string AccessCode;
+
+        public static void RefreshList(string accessCode)
         {
+            AccessCode = accessCode;
+
+
             //log = Log;
             if (All == null)
             {
@@ -163,7 +168,7 @@ namespace Parser.Server.Code
         {
             string html = string.Empty;
 
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Constants.ProxyListUrl);
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Constants.ProxyListUrl + AccessCode);
             request.AutomaticDecompression = DecompressionMethods.GZip;
 
             using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())

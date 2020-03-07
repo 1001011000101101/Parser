@@ -25,12 +25,15 @@ namespace Parser.Server
             });
 
             services.AddScoped<IDb, Db>();
+            //services.AddScoped<IConfig, Config>();
 
             services.AddTransient<BlazorTimer>();
             services.AddTransient<ParserService>();
+            
             services.AddSingleton<IHostedService>(p => p.GetService<ParserService>());
 
             
+
 
             //services.AddTransient<DebtIncomeParserService>();
             //services.AddSingleton<IHostedService>(p => p.GetService<DebtIncomeParserService>());
@@ -51,6 +54,8 @@ namespace Parser.Server
             app.UseClientSideBlazorFiles<Client.Startup>();
 
             app.UseRouting();
+
+            
 
             app.UseEndpoints(endpoints =>
             {

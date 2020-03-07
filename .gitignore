@@ -340,3 +340,4 @@ ASALocalRun/
 healthchecksdb
 /Parser/Server/UploadedFiles
 /Parser/Server/TempFiles
+/Parser/Server/appsettings.json
